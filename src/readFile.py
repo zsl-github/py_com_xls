@@ -1,89 +1,38 @@
 # -*- coding: utf-8 -*-
-import xlrd
-import xlwt
-import xlutils
-import sys
+
+from utils import FileUtils
+from xlrd import open_workbook  
+from xlutils.copy import copy
+from xlwt import *    
+import Levenshtein
 import os
 import re
-import types
-import Levenshtein
-from xlwt import *    
-from xlrd import open_workbook
-from utils import FileUtils
-
-from xlrd import open_workbook  
-import sys  
-from xlutils.copy import copy
 import struct
+import sys
+import sys  
+import types
+import xlrd
+import xlutils
+import xlwt
+
 class ReadFile:
     '''
-    打开一个文件，返回文件列表
+    把excel文件中的内容，放入一个dict中处理
     '''
-    def get_list_from_file(self, filename):
+    def get_list_from_xls_file(self, filename):
         if not os.path.isfile(filename):
-            print("请确认文件存在")
+            print("文件不存在，请确认")
             return None
-        file_type = FileUtils().filetype(filename)
-        if file_type == None:
-            print("纯文本文件")
-            self.__get_list_from_text(filename)
-        elif file_type == "Word-Excel":
-            self.__get_list_from_excel(filename)
-        elif file_type == "aa":
-            pass
+        if FileUtils().filetype(filename) == "Word-Excel":
+            self.__get_dict_from_excel(filename)
         else:
-            pass
+            print("本脚本只可以处理excel表格，请确认文件格式正确")
 
-    '''
-    打开一个文本文件，返回文件内容的list
-    '''
-    def __get_list_from_text(self, filename):
-        if "sys_result" in os.path.basename(filename):
-            self.__get_list_from_sys_result(filename)
-        elif "set_result" in os.path.basename(filename):
-            get_list_from_set_result()
-        else:
-            pass
-
-    '''
-    从sys_result中获得SystemProperties后的开关key值
-    '''
-    def __get_list_from_sys_result(self, filename):
-
-        sys_re = 'SystemProperties\.[sg]?.*?\("?[\s\d-]*(.*?)[",)]'
-        sys_com = re.compile(sys_re)
-
-        f = open(filename, 'r')
-        f_list = set()
-        try:
-            f_str = f.read()
-            f_list = set(re.findall(sys_com, f_str))
-
-        finally:
-            f.close()
-        print(len(f_list))
-
-    '''
-    从sys_result中获得SystemProperties后的开关key值
-    '''
-    def __get_list_from_set_result(self, filename):
-
-        sys_re = 'Settings\.[sg]?et.*?\(.*?,[,\s\d-]]'
-        sys_com = re.compile(sys_re)
-
-        f = open(filename, 'r')
-        f_list = set()
-        try:
-            f_str = f.read()
-            f_list = set(re.findall(sys_com, f_str))
-
-        finally:
-            f.close()
 
     '''
     获得excel表格中的的全部内容
     '''
-    def __get_list_from_excel(self, filename):
+    def __get_dict_from_excel(self, filename):
 
         excel_dict=dict()
         try:
@@ -94,10 +43,21 @@ class ReadFile:
                 for r in range(s.nrows):
                     sh_list.append(s.row_values(r))
                 excel_dict[s.name] = sh_list
+                print(s.name)
         except Exception as e:
             print(e)
 
         return excel_dict
+
+#输出整个Excel文件的内容  
+def print_workbook(rb):  
+    #sheet
+    for s in rb.sheets():  
+        #row
+        for r in range(s.nrows):  
+            #col
+            for c in s.row(r):
+                print(c.value)
 
 
 
@@ -292,25 +252,6 @@ def diff_row(row1, row2):
     return report  
 
 
-'''if __name__=='__main__':  
-  if len(sys.argv)<3:  
-    exit()  
-
-  file1 = sys.argv[1]  
-  file2 = sys.argv[2]  
-
-  wb1 = open_workbook(file1)  
-  wb2 = open_workbook(file2)  
-
-  #print_workbook(wb1)  
-  #print_workbook(wb2)  
-
-  #diff两个文件的第一个sheet  
-  report = diff_sheet(wb1.sheet_by_index(0), wb2.sheet_by_index(0))  
-  print file1 + "\n" + file2 + "\n#############################"  
-  #打印diff结果  
-  print_report(report)  
-'''
 #对比两个表格差异
 
 

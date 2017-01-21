@@ -1,204 +1,96 @@
 # -*- coding: utf-8 -*-
-import xlrd
-import xlwt
-import xlutils
-import sys
+
+from utils import FileUtils
+from xlrd import open_workbook
+from xlutils.copy import copy
+from xlwt import *    
+import Levenshtein
 import os
 import re
-import types
-import Levenshtein
-from xlwt import *    
-from xlrd import open_workbook
-from utils import FileUtils
-
-import sys  
-from xlutils.copy import copy
 import struct
+import sys
+import sys  
+import types
+import xlrd
+import xlutils
+import xlwt
+
 class WriteFile:
     '''
     把一个list中的内容保存到excel中
     '''
     def write_list_to_file(self, str_list, filename):
-        new_file = ""
         if not os.path.isfile(filename):
-            new_file = self.__create_file(filename)
-        else:
-            new_file == filename
+            print("文件不存在")
+            return
 
-        file_type = FileUtils().filetype(filename)
-        if file_type == None:
-            print("纯文本文件")
-            self.__put_list_to_text(filename)
-        elif file_type == "Word-Excel":
+        elif FileUtils().filetype(filename) == "Word-Excel":
             print("excel文件")
             self.__put_list_to_excel(filename)
-        elif file_type == "aa":
-            pass
         else:
-            pass
+            print("此脚本只能操作excel文件")
 
-    '''
-    创建新文件
-    '''
-    def __create_file(self, filename)
-        print("文件不存在，会在out路径下新创建一个")
-        fileType = os.path.splitext(filename)[1]
-        path = os.path.abspath(sys.path[0])
-        new_file = os.path.join(path, os.pardir, "out", os.path.basename(filename))
-        if fileType in (".xls", ".xlsx"):
-            wt_wb = Workbook()
-            wt_wb.add_sheet("sheet1")
-            wt_wb.save(new_file)
-        return new_file
-    '''
-    把list写入到text文本中
-    '''
-    def __put_list_to_text(self, str_list, filename):
-            f = open(filename, 'w')
-            for s in rb.sheets():
-                for r in range(s.nrows):
-                    for c in range(s.ncols):
-                        f.write(str(r)+" " + str(c)+":"+str(s.cell(r, c).value.encode('utf-8')).replace('\n', '\t'))
-                    f.write('\n')
-            f.close()
-        if "sys_result" in os.path.basename(filename):
-            self.__get_list_from_sys_result(filename)
-        elif "set_result" in os.path.basename(filename):
-            get_list_from_set_result()
+
+    #复制一个excel表格
+    def copy_excel(soufile, desfile=None):
+        if (not os.path.exists(soufile) or (os.path.exists(desfile))):
+            print("请确保文件是否存在")
+            return
+        rb_wb = open_excel(soufile)
+        wt_wb = copy(rb_wb)
+        if desfile == None:
+            file_base_name = os.path.splitext(os.path.basename(soufile))
+            desfile = soufile.replace(file_base_name, file_base_name + "_" + "result")
+        wt_wb.save(desfile)
+
+
+    # 更改某个单元格中的内容
+    def change_cell_content(self, wtsheet, row, col, change_str):
+        if wtsheet.cell(row, col) == change_str:
+            print("内容相同，不需要变更")
         else:
-            pass
+            wtsheet.write(moverow, movecol, instr)
 
-    '''
-    从sys_result中获得SystemProperties后的开关key值
-    '''
-    def __get_list_from_sys_result(self, filename):
+    #给一个表格插入列,每列的内容相同
+    def insert_one_col(wtsheet, rdsheet, newcolnum, instr, headstr=None):
+        for moverow in range(0, rdsheet.nrows):
+            for movecol in range(rdsheet.ncols-1, newcolnum-1, -1):
+                if movecol == newcolnum:
+                    wtsheet.write(moverow, movecol, instr)
+                else:
+                    wtsheet.write(moverow, movecol+1, rdsheet.cell(moverow, movecol).value.encode('utf-8'))
 
-        sys_re = 'SystemProperties\.[sg]?.*?\("?[\s\d-]*(.*?)[",)]'
-        sys_com = re.compile(sys_re)
+        if not headstr == None:
+            wtsheet.write(0, newcolnum, headstr)
 
-        f = open(filename, 'r')
-        f_list = set()
-        try:
-            f_str = f.read()
-            f_list = set(re.findall(sys_com, f_str))
-
-        finally:
-            f.close()
-        print(len(f_list))
-
-    '''
-    从sys_result中获得SystemProperties后的开关key值
-    '''
-    def __get_list_from_set_result(self, filename):
-
-        sys_re = 'Settings\.[sg]?et.*?\(.*?,[,\s\d-]]'
-        sys_com = re.compile(sys_re)
-
-        f = open(filename, 'r')
-        f_list = set()
-        try:
-            f_str = f.read()
-            f_list = set(re.findall(sys_com, f_str))
-
-        finally:
-            f.close()
-
-    '''
-    获得excel表格中的的全部内容
-    '''
-    def __get_list_from_excel(self, filename):
-
-        excel_dict=dict()
-        try:
-            rd_book = xlrd.open_workbook(filename)
-            
-            for s in rd_book.sheets():  
-                sh_list = list()
-                for r in range(s.nrows):
-                    sh_list.append(s.row_values(r))
-                excel_dict[s.name] = sh_list
-        except Exception as e:
-            print(e)
-
-        return excle_dict
+    #给一个表格插入行,每列的内容相同
+    def insert_one_row(wtsheet, rdsheet, newrownum, instr):
+        for movecol in range(0, rdsheet.ncols):
+            for moverow in range(rdsheet.nrows-1, newrownum-1, -1):
+                if moverow == newrownum:
+                    wtsheet.write(moverow, movecol, instr)
+                else:
+                    wtsheet.write(moverow+1, movecol, rdsheet.cell(moverow, movecol).value.encode('utf-8'))
 
 
+    #获得两个excel 相同的sheet列表
+    def get_same_sheet(rb1, rb2):
+        same_list = [sh for sh in rb1._sheet_names if sh in rb2._sheet_names]
+        print(same_list)
+        return same_list
 
+    #获取list列表中的字串成员
+    def get_str_list_from_list(des_list):
+        str_list = [s for s in des_list if isinstance(s, types.StringTypes)]
+        return str_list
 
+    #把一个list转换为一个字串，去掉其中的换行符
+    def get_str_from_list(des_list):
+        return ''.join(des_list).replace('\n', '')
 
-
-
-
-
-
-
-#打开一个xls文件，读取数据
-def open_excel(f= 'file.xls'):
-    try:
-        data = xlrd.open_workbook(f,encoding_override='utf-8')
-        return data
-    except Exception as e:
-        print(e)
-
-#创建一个xls文件，保存数据
-def create_new_excel(filename):
-    if (os.path.exists(filename)):
-        print("文件已经存在,无需创建")
-    else:
-        w = Workbook(encoding='utf-8')
-        w.add_sheet("sheet1")
-        w.save(filename)
-
-#复制一个excel表格
-def copy_excel(soufile, desfile):
-    if (not os.path.exists(soufile) or (os.path.exists(desfile))):
-        print("请确保文件是否存在")
-        return
-    rb_wb = open_excel(soufile)
-    wt_wb = copy(rb_wb)
-    wt_wb.save(desfile)
-
-#给一个表格插入列,每列的内容相同
-def insert_one_col(wtsheet, rdsheet, newcolnum, instr, headstr=None):
-    for moverow in range(0, rdsheet.nrows):
-        for movecol in range(rdsheet.ncols-1, newcolnum-1, -1):
-            if movecol == newcolnum:
-                wtsheet.write(moverow, movecol, instr)
-            else:
-                wtsheet.write(moverow, movecol+1, rdsheet.cell(moverow, movecol).value.encode('utf-8'))
-
-    if not headstr == None:
-        wtsheet.write(0, newcolnum, headstr)
-
-#给一个表格插入行,每列的内容相同
-def insert_one_row(wtsheet, rdsheet, newrownum, instr):
-    for movecol in range(0, rdsheet.ncols):
-        for moverow in range(rdsheet.nrows-1, newrownum-1, -1):
-            if moverow == newrownum:
-                wtsheet.write(moverow, movecol, instr)
-            else:
-                wtsheet.write(moverow+1, movecol, rdsheet.cell(moverow, movecol).value.encode('utf-8'))
-
-
-
-#获得两个excel 相同的sheet列表
-def get_same_sheet(rb1, rb2):
-    same_list = [sh for sh in rb1._sheet_names if sh in rb2._sheet_names]
-    print(same_list)
-    return same_list
-
-#获取list列表中的字串成员
-def get_str_list_from_list(des_list):
-    str_list = [s for s in des_list if isinstance(s, types.StringTypes)]
-    return str_list
-
-#把一个list转换为一个字串，去掉其中的换行符
-def get_str_from_list(des_list):
-    return ''.join(des_list).replace('\n', '')
-
-#合并两个行中的差异信息
-def merge_df_row(row1, row2):
-    pass
+    #合并两个行中的差异信息
+    def merge_df_row(row1, row2):
+        pass
 
 #获得两个sheet相似的列
 def get_same_row(sheet1, sheet2, simi_val):
@@ -304,28 +196,6 @@ def diff_row(row1, row2):
           report.append("#CELL[" + str(c+1) + "]2: " + ce2.value)  
 
     return report  
-
-
-'''if __name__=='__main__':  
-  if len(sys.argv)<3:  
-    exit()  
-
-  file1 = sys.argv[1]  
-  file2 = sys.argv[2]  
-
-  wb1 = open_workbook(file1)  
-  wb2 = open_workbook(file2)  
-
-  #print_workbook(wb1)  
-  #print_workbook(wb2)  
-
-  #diff两个文件的第一个sheet  
-  report = diff_sheet(wb1.sheet_by_index(0), wb2.sheet_by_index(0))  
-  print file1 + "\n" + file2 + "\n#############################"  
-  #打印diff结果  
-  print_report(report)  
-'''
-#对比两个表格差异
 
 
 ''' 得到一个excel的sheet个数

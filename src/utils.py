@@ -68,3 +68,29 @@ class FileUtils:
                 return tl[hcode]
         return None
 
+    '''
+    比较两个list列表的相似度
+    '''
+    def com_list_similarity(self, list1, list2, simiValue=1):
+        for i in list1:
+            for j in list2:
+                if com_str_similarity(i, j):
+                    return
+        pass
+
+    '''
+    比较两个字串的相似度
+    '''
+    def com_str_similarity(self, str1, str2, simiValue=-1):
+        if simiValue == -1:
+            if str1 == str2:
+                return True
+
+        else:
+            # 使用相似度模块
+            pass
+
+
+
+
+
